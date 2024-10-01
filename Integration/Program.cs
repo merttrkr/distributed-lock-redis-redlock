@@ -1,29 +1,42 @@
 ﻿using Integration.Service;
+using System.Diagnostics;
 
-namespace Integration;
-
-public abstract class Program
+namespace Integration
 {
-    public static void Main(string[] args)
+    class Program
     {
-        var service = new ItemIntegrationService();
-        
-        ThreadPool.QueueUserWorkItem(_ => service.SaveItem("a"));
-        ThreadPool.QueueUserWorkItem(_ => service.SaveItem("b"));
-        ThreadPool.QueueUserWorkItem(_ => service.SaveItem("c"));
+        static void Main(string[] args)
+        {
+            var service = new ItemIntegrationService();
 
-        Thread.Sleep(500);
+            // Duplicate content containing list.
+            var itemContents = new List<string>
+            {
+                "Content1",
+                "Content2",
+                "Content3",
+                "Content1",  // Duplicate content
+                "Content4",
+                "Content5",
+                "Content2"   // Duplicate content
+            };
 
-        ThreadPool.QueueUserWorkItem(_ => service.SaveItem("a"));
-        ThreadPool.QueueUserWorkItem(_ => service.SaveItem("b"));
-        ThreadPool.QueueUserWorkItem(_ => service.SaveItem("c"));
 
-        Thread.Sleep(5000);
+            // each thread calls service layer in parallel for each loop.
+            Parallel.ForEach(itemContents, content =>
+            {
+                var result = service.SaveItem(content);
+                Console.WriteLine(result.Message);
+            });
 
-        Console.WriteLine("Everything recorded:");
 
-        service.GetAllItems().ForEach(Console.WriteLine);
-
-        Console.ReadLine();
+            // Check the saved items
+            var allItems = service.GetAllItems();
+            Console.WriteLine("\nSaved Items:");
+            foreach (var item in allItems)
+            {
+                Console.WriteLine(item);
+            }
+        }
     }
 }
