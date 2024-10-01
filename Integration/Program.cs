@@ -20,7 +20,17 @@ namespace Integration
                 "Content5",
                 "Content2"   // Duplicate content
             };
-
+            // Duplicate list
+            var itemContents2 = new List<string>
+            {
+                "Content1",
+                "Content2",
+                "Content3",
+                "Content1",  
+                "Content4",
+                "Content5",
+                "Content2"   
+            };
 
             // each thread calls service layer in parallel for each loop.
             Parallel.ForEach(itemContents, content =>
@@ -29,7 +39,11 @@ namespace Integration
                 Console.WriteLine(result.Message);
             });
 
-
+            Parallel.ForEach(itemContents2, content =>
+            {
+                var result = service.SaveItem(content);
+                Console.WriteLine(result.Message);
+            });
             // Check the saved items
             var allItems = service.GetAllItems();
             Console.WriteLine("\nSaved Items:");
