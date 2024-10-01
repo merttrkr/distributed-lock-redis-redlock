@@ -1,56 +1,28 @@
 ﻿using Integration.Service;
+using Integration.Service.local;
+using Integration.Test;
+using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 
-namespace Integration
+namespace Integration;
+
+class Program
 {
-    class Program
+
+    static async Task Main(string[] args)
     {
-        static void Main(string[] args)
-        {
-            var service = new ItemIntegrationService();
+        //TestItemIntegrationServiceLocal service = new();
+        //service.Test();
 
-            // Duplicate content containing list.
-            var itemContents = new List<string>
-            {
-                "Content1",
-                "Content2",
-                "Content3",
-                "Content1",  // Duplicate content
-                "Content4",
-                "Content5",
-                "Content2"   // Duplicate content
-            };
-            // Duplicate list
-            var itemContents2 = new List<string>
-            {
-                "Content1",
-                "Content2",
-                "Content3",
-                "Content1",  
-                "Content4",
-                "Content5",
-                "Content2"   
-            };
+        // Set up dependency injection
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddDistributedIntegrationServices(); // Add your service registration
+        var serviceProvider = serviceCollection.BuildServiceProvider();
 
-            // each thread calls service layer in parallel for each loop.
-            Parallel.ForEach(itemContents, content =>
-            {
-                var result = service.SaveItem(content);
-                Console.WriteLine(result.Message);
-            });
+        // Create an instance of the test class and run the test
+        var testService = serviceProvider.GetRequiredService<TestItemIntegrationServiceDistributed>();
 
-            Parallel.ForEach(itemContents2, content =>
-            {
-                var result = service.SaveItem(content);
-                Console.WriteLine(result.Message);
-            });
-            // Check the saved items
-            var allItems = service.GetAllItems();
-            Console.WriteLine("\nSaved Items:");
-            foreach (var item in allItems)
-            {
-                Console.WriteLine(item);
-            }
-        }
+        // Run the test method
+        await testService.TestAsync();
     }
 }
