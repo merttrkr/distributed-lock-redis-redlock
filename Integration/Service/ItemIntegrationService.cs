@@ -1,32 +1,53 @@
 ﻿using Integration.Common;
 using Integration.Backend;
+using System.Collections.Concurrent;
 
-namespace Integration.Service;
-
-public sealed class ItemIntegrationService
+namespace Integration.Service
 {
-    //This is a dependency that is normally fulfilled externally.
-    private ItemOperationBackend ItemIntegrationBackend { get; set; } = new();
-
-    // This is called externally and can be called multithreaded, in parallel.
-    // More than one item with the same content should not be saved. However,
-    // calling this with different contents at the same time is OK, and should
-    // be allowed for performance reasons.
-    public Result SaveItem(string itemContent)
+    public sealed class ItemIntegrationService
     {
-        // Check the backend to see if the content is already saved.
-        if (ItemIntegrationBackend.FindItemsWithContent(itemContent).Count != 0)
+        // Dependency that is normally fulfilled externally.
+        private ItemOperationBackend ItemIntegrationBackend { get; set; } = new();
+
+        // Dictionary to track ongoing saves.
+        private ConcurrentDictionary<string, bool> ProcessedDictionary = new();
+
+        // This is called externally and can be called multithreaded, in parallel.
+        public Result SaveItem(string itemContent)
         {
-            return new Result(false, $"Duplicate item received with content {itemContent}.");
+            // Ensure no duplicate content is processed concurrently.
+            if (!ProcessedDictionary.TryAdd(itemContent, true))
+            {
+                return new Result(false, $"Duplicate item detected for content '{itemContent}'.");
+            }
+
+            try
+            {
+                // Check if the item was already saved in the backend to ensure no duplicates.
+                var existingItems = ItemIntegrationBackend.FindItemsWithContent(itemContent);
+                if (existingItems.Count > 0)
+                {
+                    return new Result(false, $"Item with content '{itemContent}' already exists and will not be saved again.");
+                }
+
+                // Save the item if it has not been saved before.
+                var item = ItemIntegrationBackend.SaveItem(itemContent);
+                return new Result(true, $"Item with content '{itemContent}' saved successfully with ID {item.Id}.");
+            }
+            catch (Exception ex)
+            {
+                return new Result(false, $"An error occurred while saving the item: {ex.Message}");
+            }
+            finally
+            {
+                // Always remove the item from the processed dictionary after processing.
+                ProcessedDictionary.TryRemove(itemContent, out _);
+            }
         }
 
-        var item = ItemIntegrationBackend.SaveItem(itemContent);
-
-        return new Result(true, $"Item with content {itemContent} saved with id {item.Id}");
-    }
-
-    public List<Item> GetAllItems()
-    {
-        return ItemIntegrationBackend.GetAllItems();
+        public List<Item> GetAllItems()
+        {
+            return ItemIntegrationBackend.GetAllItems();
+        }
     }
 }
