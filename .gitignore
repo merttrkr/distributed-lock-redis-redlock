@@ -3,3 +3,7 @@
 ################################################################################
 
 /Integration/Integration.csproj
+/Integration/obj
+/Integration/bin/Debug/net7.0
+/.vs/Integration
+/.cr/personal/FavoritesList
