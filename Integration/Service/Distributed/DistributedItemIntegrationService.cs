@@ -1,18 +1,28 @@
 ﻿using Integration.Backend;
 using Integration.Common;
 using Integration.Service.Abstractions;
+using Integration.Service.Distributed.Redis;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Integration.Service.Distributed;
 
-public sealed class DistributedItemIntegrationService: IAsyncIntegrationService
+/// <summary>
+/// Service for distributed item integration, ensuring thread safety and distributed locking through Redis.
+/// </summary>
+public sealed class DistributedItemIntegrationService : IDistributedItemIntegrationService
 {
     private readonly ItemOperationBackend _itemIntegrationBackend;
     private readonly RedisDistributedLock _redisLock;
     private readonly ExponentialBackoff _exponentialBackoff;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DistributedItemIntegrationService"/> class.
+    /// </summary>
+    /// <param name="itemIntegrationBackend">Backend for item operations.</param>
+    /// <param name="redisLock">Distributed lock for thread safety in Redis.</param>
+    /// <param name="exponentialBackoff">Exponential backoff retry mechanism for acquiring the lock.</param>
     public DistributedItemIntegrationService(
         ItemOperationBackend itemIntegrationBackend,
         RedisDistributedLock redisLock,
@@ -23,15 +33,22 @@ public sealed class DistributedItemIntegrationService: IAsyncIntegrationService
         _exponentialBackoff = exponentialBackoff;
     }
 
+    /// <summary>
+    /// Saves an item asynchronously, ensuring only one process can save the same item at a time using a Redis lock.
+    /// </summary>
+    /// <param name="itemContent">The content of the item to be saved.</param>
+    /// <returns>A result indicating the success or failure of the operation.</returns>
     public async Task<Result> SaveItemAsync(string itemContent)
     {
         var lockKey = $"lock:item:{itemContent}";
 
         try
         {
-            _redisLock.SetResource(lockKey); // Set lock key dynamically
-            var lockAcquired = await _exponentialBackoff.RetryAsync(_redisLock.AcquireLockAsync);
+            // Set dynamic Redis lock resource key
+            _redisLock.SetResource(lockKey);
 
+            // Attempt to acquire lock with retry logic
+            var lockAcquired = await _exponentialBackoff.RetryAsync(_redisLock.AcquireLockAsync);
             if (!lockAcquired)
             {
                 return new Result(false, "Could not acquire Redis lock.");
@@ -44,7 +61,7 @@ public sealed class DistributedItemIntegrationService: IAsyncIntegrationService
                 return new Result(false, $"Item with content '{itemContent}' already exists.");
             }
 
-            // Save item
+            // Save item to backend
             var item = _itemIntegrationBackend.SaveItem(itemContent);
             return new Result(true, $"Item with content '{itemContent}' saved successfully with ID {item.Id}.");
         }
@@ -54,10 +71,15 @@ public sealed class DistributedItemIntegrationService: IAsyncIntegrationService
         }
         finally
         {
-            _redisLock.Dispose(); // Ensure lock is released
+            // Ensure lock is released after operation
+            _redisLock.Dispose();
         }
     }
 
+    /// <summary>
+    /// Retrieves all items from the backend.
+    /// </summary>
+    /// <returns>A list of all items.</returns>
     public List<Item> GetAllItems()
     {
         return _itemIntegrationBackend.GetAllItems();

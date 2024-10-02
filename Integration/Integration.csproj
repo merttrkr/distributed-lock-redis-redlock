@@ -10,7 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Service\Handler\" />
+    <Compile Remove="Service\Handler\**" />
+    <EmbeddedResource Remove="Service\Handler\**" />
+    <None Remove="Service\Handler\**" />
   </ItemGroup>
 
   <ItemGroup>

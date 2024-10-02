@@ -11,9 +11,11 @@ class Program
 
     static async Task Main(string[] args)
     {
+        //uncomment for local testing
         //TestItemIntegrationServiceLocal service = new();
         //service.Test();
 
+        // distributed testing
         // Set up dependency injection
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddDistributedIntegrationServices(); // Add your service registration

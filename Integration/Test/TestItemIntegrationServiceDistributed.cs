@@ -9,9 +9,9 @@ namespace Integration.Test;
 
 public class TestItemIntegrationServiceDistributed
 {
-    private readonly IAsyncIntegrationService _distributedItemService;
+    private readonly IDistributedItemIntegrationService _distributedItemService;
 
-    public TestItemIntegrationServiceDistributed(IAsyncIntegrationService distributedItemService)
+    public TestItemIntegrationServiceDistributed(IDistributedItemIntegrationService distributedItemService)
     {
         _distributedItemService = distributedItemService;
     }
