@@ -1,9 +1,9 @@
 ﻿# AdCreative.ai Integration Case
-for testing:
-(for local uncomment program.cs local part)
-docker network create redis-network
-docker-compose build
-docker compose up
+## for testing:
+* (for local uncomment program.cs local part)
+* docker network create redis-network
+* docker-compose build
+* docker compose up
 ## Description of the Problem
 
 The project comprises two layers: Service and Backend.
