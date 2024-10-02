@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Integration.Service.Distributed;
+namespace Integration.Service.Distributed.Redis;
 
 public class RedisConnectionFactory : IRedisConnectionFactory
 {
@@ -25,11 +25,11 @@ public class RedisConnectionFactory : IRedisConnectionFactory
             {
                 EndPoints =
                 {
-                    "redis1:6379", 
-                    "redis2:6379", 
-                    "redis3:6379", 
-                    "redis4:6379", 
-                    "redis5:6379"  
+                    "redis1:6379",
+                    "redis2:6379",
+                    "redis3:6379",
+                    "redis4:6379",
+                    "redis5:6379"
                 },
                 AbortOnConnectFail = false,
                 Password = "your_password", // Ensure this is set securely, possibly via configuration

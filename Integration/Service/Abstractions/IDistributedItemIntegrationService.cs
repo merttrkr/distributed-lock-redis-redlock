@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Integration.Service.Abstractions;
 
-public interface IAsyncIntegrationService
+public interface IDistributedItemIntegrationService
 {
     public Task<Result> SaveItemAsync(string itemContent);
     public List<Item> GetAllItems();

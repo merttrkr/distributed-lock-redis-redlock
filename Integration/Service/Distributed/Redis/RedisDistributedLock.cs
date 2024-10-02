@@ -3,7 +3,7 @@ using RedLockNet;
 using RedLockNet.SERedis;
 
 
-namespace Integration.Service.Distributed;
+namespace Integration.Service.Distributed.Redis;
 
 
 public class RedisDistributedLock : IDisposable, IDistributedLock
@@ -13,7 +13,7 @@ public class RedisDistributedLock : IDisposable, IDistributedLock
     private string _resource;
     private readonly TimeSpan _lockExpiry;
 
-    public RedisDistributedLock(RedLockFactory redLockFactory,  TimeSpan lockExpiry)
+    public RedisDistributedLock(RedLockFactory redLockFactory, TimeSpan lockExpiry)
     {
         _redLockFactory = redLockFactory ?? throw new ArgumentNullException(nameof(redLockFactory));
         _lockExpiry = lockExpiry;

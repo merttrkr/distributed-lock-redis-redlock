@@ -1,6 +1,7 @@
 ﻿using Integration.Backend;
 using Integration.Service.Abstractions;
 using Integration.Service.Distributed;
+using Integration.Service.Distributed.Redis;
 using Integration.Test;
 using Microsoft.Extensions.DependencyInjection;
 using RedLockNet;
@@ -46,7 +47,7 @@ namespace Integration.Service
             );
 
             // Register the integration service
-            services.AddScoped<IAsyncIntegrationService, DistributedItemIntegrationService>();
+            services.AddScoped<IDistributedItemIntegrationService, DistributedItemIntegrationService>();
 
             // Register the test service for DI
             services.AddScoped<TestItemIntegrationServiceDistributed>();

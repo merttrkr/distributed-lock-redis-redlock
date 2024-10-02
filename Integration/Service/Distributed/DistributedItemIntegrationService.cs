@@ -1,13 +1,14 @@
 ﻿using Integration.Backend;
 using Integration.Common;
 using Integration.Service.Abstractions;
+using Integration.Service.Distributed.Redis;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Integration.Service.Distributed;
 
-public sealed class DistributedItemIntegrationService: IAsyncIntegrationService
+public sealed class DistributedItemIntegrationService: IDistributedItemIntegrationService
 {
     private readonly ItemOperationBackend _itemIntegrationBackend;
     private readonly RedisDistributedLock _redisLock;
