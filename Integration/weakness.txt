@@ -1,0 +1,8 @@
+Latency: Acquiring and releasing locks may introduce small delays.
+
+Complexity: The system becomes more complex, making debugging and monitoring more challenging.
+
+Resource Usage: Requires additional infrastructure for Redis.
+
+Time drift and clock synchronization issues: Redlock relies on accurate time measurements across multiple Redis nodes. 
+If there is significant time drift between nodes, lock expirations may not be consistent, leading to potential safety issues such as race conditions or premature lock releases.
