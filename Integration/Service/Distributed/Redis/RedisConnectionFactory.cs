@@ -3,89 +3,84 @@ using RedLockNet.SERedis.Configuration;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Integration.Service.Distributed.Redis;
 
 /// <summary>
 /// Provides functionality to create and manage Redis connections using ConnectionMultiplexer for distributed operations.
-/// Implements a singleton pattern to ensure only one connection is created.
+/// Implements a singleton pattern to ensure only one set of Redis connections is created for the application.
 /// </summary>
 public class RedisConnectionFactory : IRedisConnectionFactory
 {
-    private readonly Lazy<Task<ConnectionMultiplexer>> _connectionMultiplexer;
+    // A list of RedLockMultiplexer objects representing Redis connections
+    private readonly List<RedLockMultiplexer> _connectionMultiplexers;
+
+    // A list of Redis endpoints used to establish connections
+    private readonly List<string> _redisEndpoints = new List<string>
+    {
+        "redis1:6379",
+        "redis2:6379",
+        "redis3:6379",
+        "redis4:6379",
+        "redis5:6379"
+    };
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RedisConnectionFactory"/> class.
-    /// Creates a lazy-loaded connection multiplexer for Redis nodes.
+    /// Constructor that initializes the Redis connections synchronously by calling CreateRedisConnections().
     /// </summary>
     public RedisConnectionFactory()
     {
-        // Initialize the ConnectionMultiplexer as a singleton
-        _connectionMultiplexer = new Lazy<Task<ConnectionMultiplexer>>(CreateConnectionAsync);
+        // Initialize the ConnectionMultiplexer list when the class is instantiated
+        _connectionMultiplexers = CreateRedisConnections();
     }
 
     /// <summary>
-    /// Creates and establishes a connection to the Redis nodes using ConnectionMultiplexer asynchronously.
+    /// Creates Redis connections based on the configured endpoints.
+    /// Handles any connection exceptions and logs them, retrying connections up to the configured number of times.
     /// </summary>
-    /// <returns>A task that represents the asynchronous connection creation. The task result is a <see cref="ConnectionMultiplexer"/> for Redis.</returns>
-    private async Task<ConnectionMultiplexer> CreateConnectionAsync()
+    /// <returns>A list of RedLockMultiplexer objects representing Redis connections.</returns>
+    private List<RedLockMultiplexer> CreateRedisConnections()
     {
-        try
+        var connections = new List<RedLockMultiplexer>();
+
+        foreach (var endpoint in _redisEndpoints)
         {
             var configurationOptions = new ConfigurationOptions
             {
-                EndPoints =
-                {
-                    "redis1:6379",
-                    "redis2:6379",
-                    "redis3:6379",
-                    "redis4:6379",
-                    "redis5:6379"
-                },
-                AbortOnConnectFail = false,
-                Password = "your_password", // Ensure this is set securely, possibly via configuration
-                ConnectRetry = 5,           // Retry connection up to 5 times
-                SyncTimeout = 5000          // Set synchronous operation timeout to 5 seconds
+                EndPoints = { endpoint },
+                AbortOnConnectFail = false,     // Prevents app shutdown on failed connections
+                Password = "your_password",     // Placeholder for secure password management
+                ConnectRetry = 5,               // Retry failed connections up to 5 times
+                AllowAdmin = true,              // Enables admin commands for lock debugging
+                SyncTimeout = 5000              // Sets the synchronous timeout limit to 5 seconds
             };
 
-            var connection = await ConnectionMultiplexer.ConnectAsync(configurationOptions);
-            return connection;
+            try
+            {
+                // Attempt to connect to the Redis server with the specified configuration
+                var connection = ConnectionMultiplexer.Connect(configurationOptions);
+                connections.Add(connection);
+            }
+            catch (RedisConnectionException ex)
+            {
+                // Log and rethrow the exception if connection fails
+                Console.WriteLine($"Redis connection failed for {endpoint}: {ex.Message}");
+                throw;
+            }
         }
-        catch (RedisConnectionException ex)
-        {
-            // Handle connection errors (e.g., log the error)
-            Console.WriteLine($"Redis connection failed: {ex.Message}");
-            throw; // Re-throw the exception after logging
-        }
-        catch (Exception ex)
-        {
-            // Handle other exceptions (e.g., log the error)
-            Console.WriteLine($"An error occurred while connecting to Redis: {ex.Message}");
-            throw; // Re-throw the exception after logging
-        }
+
+        return connections; // Return the list of successful Redis connections
     }
 
     /// <summary>
-    /// Returns the singleton instance of the Redis connection multiplexer.
+    /// Returns the list of ConnectionMultiplexer objects that represent the established Redis connections.
+    /// This method is used to retrieve the connections for distributed locking.
     /// </summary>
-    /// <returns>A task that represents the asynchronous operation. The task result is the <see cref="ConnectionMultiplexer"/> instance.</returns>
-    public async Task<ConnectionMultiplexer> GetConnectionMultiplexerAsync()
+    /// <returns>A list of RedLockMultiplexer objects.</returns>
+    public List<RedLockMultiplexer> GetConnectionMultiplexers()
     {
-        return await _connectionMultiplexer.Value; // Return the singleton instance
-    }
-
-    /// <summary>
-    /// Creates Redis connections for RedLock using the existing connection multiplexer.
-    /// </summary>
-    /// <returns>A task that represents the asynchronous operation. The task result is a list of <see cref="RedLockMultiplexer"/> instances for RedLock.</returns>
-    public async Task<IEnumerable<RedLockMultiplexer>> CreateRedisConnectionsAsync()
-    {
-        // Use a single connection multiplexer for all Redis nodes
-        var connectionMultiplexer = await GetConnectionMultiplexerAsync();
-        return new List<RedLockMultiplexer>
-        {
-            new RedLockMultiplexer(connectionMultiplexer)
-        };
+        return _connectionMultiplexers; // Return the singleton list of Redis connections
     }
 }

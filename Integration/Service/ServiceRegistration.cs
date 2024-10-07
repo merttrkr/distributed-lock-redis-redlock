@@ -24,9 +24,7 @@ namespace Integration.Service
             services.AddSingleton<RedLockFactory>(provider =>
             {
                 var connectionFactory = provider.GetRequiredService<IRedisConnectionFactory>();
-                var redisConnectionsTask = connectionFactory.CreateRedisConnectionsAsync();
-                // Wait for the connections to be ready
-                var redisConnections = redisConnectionsTask.Result.ToArray(); // Block here until task is completed
+                var redisConnections = connectionFactory.GetConnectionMultiplexers();
                 return RedLockFactory.Create(redisConnections);
             });
 
@@ -36,7 +34,7 @@ namespace Integration.Service
                 var redLockFactory = provider.GetRequiredService<RedLockFactory>();
 
                 // Define lock properties (adjust the expiry as needed)
-                TimeSpan lockExpiry = TimeSpan.FromSeconds(10);
+                TimeSpan lockExpiry = TimeSpan.FromSeconds(1);
 
                 return new RedisDistributedLock(redLockFactory, lockExpiry);
             });
