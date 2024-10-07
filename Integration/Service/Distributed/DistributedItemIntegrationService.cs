@@ -4,6 +4,8 @@ using Integration.Service.Abstractions;
 using Integration.Service.Distributed.Redis;
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Integration.Service.Distributed;
@@ -40,7 +42,8 @@ public sealed class DistributedItemIntegrationService : IDistributedItemIntegrat
     /// <returns>A result indicating the success or failure of the operation.</returns>
     public async Task<Result> SaveItemAsync(string itemContent)
     {
-        var lockKey = $"lock:item:{itemContent}";
+        // Generate a more unique lock key
+        string lockKey = GenerateUniqueLockKey(itemContent);
 
         try
         {
@@ -48,7 +51,7 @@ public sealed class DistributedItemIntegrationService : IDistributedItemIntegrat
             _redisLock.SetResource(lockKey);
 
             // Attempt to acquire lock with retry logic
-            var lockAcquired = await _exponentialBackoff.RetryAsync(_redisLock.AcquireLockAsync);
+            var lockAcquired = await _exponentialBackoff.RetryAsync(() => _redisLock.AcquireLockAsync());
             if (!lockAcquired)
             {
                 return new Result(false, "Could not acquire Redis lock.");
@@ -75,7 +78,22 @@ public sealed class DistributedItemIntegrationService : IDistributedItemIntegrat
             _redisLock.Dispose();
         }
     }
+    /// <summary>
+    /// Generates a unique lock key using a hash of the content
+    /// </summary>
+    /// <returns>A lock key.</returns>
 
+    private string GenerateUniqueLockKey(string itemContent)
+    {
+        using (var sha256 = SHA256.Create())
+        {
+            var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(itemContent));
+            var hashString = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+
+            // Create a lock key with a namespace and the hashed content
+            return $"app:lock:item:{hashString}";
+        }
+    }
     /// <summary>
     /// Retrieves all items from the backend.
     /// </summary>

@@ -18,17 +18,8 @@ public class TestItemIntegrationServiceDistributed
 
     public async Task TestAsync()
     {
-        // Test item content with duplicates to simulate multiple threads.
-        var itemContents = new List<string>
-        {
-            "Content1",
-            "Content2",
-            "Content3",
-            "Content4",
-            "Content5",
-        };
 
-        var itemContents2 = new List<string>
+        var itemContents = new List<string>
         {
             "Content1",
             "Content2",
@@ -43,16 +34,11 @@ public class TestItemIntegrationServiceDistributed
         // Step 1: Simulate parallel execution for itemContents list
         await Parallel.ForEachAsync(itemContents, async (content, _) =>
         {
+            await Task.Delay(Random.Shared.Next(0, 200)); // Simulate varied arrival times
             var result = await _distributedItemService.SaveItemAsync(content);
             Console.WriteLine(result.Message);
         });
 
-        // Step 2: Simulate parallel execution for itemContents2 list
-        await Parallel.ForEachAsync(itemContents2, async (content, _) =>
-        {
-            var result = await _distributedItemService.SaveItemAsync(content);
-            Console.WriteLine(result.Message);
-        });
 
         // Step 3: Check the saved items after the test
         var allItems = _distributedItemService.GetAllItems();

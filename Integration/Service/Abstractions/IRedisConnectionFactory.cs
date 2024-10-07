@@ -5,8 +5,8 @@ namespace Integration.Service.Abstractions;
 
 public interface IRedisConnectionFactory
 {
-    public Task<ConnectionMultiplexer> GetConnectionMultiplexerAsync();
-    public Task<IEnumerable<RedLockMultiplexer>> CreateRedisConnectionsAsync();
+
+    public List<RedLockMultiplexer> GetConnectionMultiplexers();
 
 
 }
